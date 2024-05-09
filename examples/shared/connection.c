@@ -38,11 +38,12 @@ int create_socket(const char * portStr, int addressFamily)
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
 
+    // 域名 端口 解析
     if (0 != getaddrinfo(NULL, portStr, &hints, &res))
     {
         return -1;
     }
-
+    // 找一个可用的服务器建立链接
     for(p = res ; p != NULL && s == -1 ; p = p->ai_next)
     {
         s = socket(p->ai_family, p->ai_socktype, p->ai_protocol);

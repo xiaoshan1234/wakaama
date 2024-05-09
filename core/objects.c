@@ -1054,10 +1054,10 @@ int object_getServers(lwm2m_context_t * contextP, bool checkOnly)
     if (NULL == securityObjP) return -1;
 
     securityInstP = securityObjP->instanceList;
-    while (securityInstP != NULL)
+    while (securityInstP != NULL) // 轮询 securityObjP->instanceList，将里面的server重新加入
     {
         if (LWM2M_LIST_FIND(contextP->bootstrapServerList, securityInstP->id) == NULL
-         && LWM2M_LIST_FIND(contextP->serverList, securityInstP->id) == NULL)
+         && LWM2M_LIST_FIND(contextP->serverList, securityInstP->id) == NULL) // 已有的不在加入上下文
         {
             // This server is new. eg created by last bootstrap
 
@@ -1070,7 +1070,7 @@ int object_getServers(lwm2m_context_t * contextP, bool checkOnly)
             size = 1;
             dataP = lwm2m_data_new(size);
             if (dataP == NULL) return -1;
-            dataP[0].id = LWM2M_SECURITY_BOOTSTRAP_ID;
+            dataP[0].id = LWM2M_SECURITY_BOOTSTRAP_ID; // 读取 security bs flag, 确认实例是否是bs server
 
             if (securityObjP->readFunc(contextP, securityInstP->id, &size, &dataP, securityObjP) != COAP_205_CONTENT)
             {
@@ -1093,11 +1093,11 @@ int object_getServers(lwm2m_context_t * contextP, bool checkOnly)
                 return -1;
             }
 
-            if (isBootstrap)
+            if (isBootstrap) // bs server 处理流程
             {
-                targetP->shortID = 0;
+                targetP->shortID = 0; // 非 bs 服务器才会用这个
 #ifndef LWM2M_VERSION_1_0
-                targetP->servObjInstID = LWM2M_MAX_ID;
+                targetP->servObjInstID = LWM2M_MAX_ID; // 非 bs 服务器才会用这个
 #endif
 
                 lwm2m_data_free(size, dataP);
@@ -1108,7 +1108,7 @@ int object_getServers(lwm2m_context_t * contextP, bool checkOnly)
                     lwm2m_free(targetP);
                     return -1;
                 }
-                dataP[0].id = LWM2M_SECURITY_HOLD_OFF_ID;
+                dataP[0].id = LWM2M_SECURITY_HOLD_OFF_ID; // bs 引导发起等待时间
                 if (securityObjP->readFunc(contextP, securityInstP->id, &size, &dataP, securityObjP) != COAP_205_CONTENT)
                 {
                     lwm2m_free(targetP);
@@ -1123,7 +1123,7 @@ int object_getServers(lwm2m_context_t * contextP, bool checkOnly)
                     return -1;
                 }
                 // lifetime of a bootstrap server is set to ClientHoldOffTime
-                targetP->lifetime = value;
+                targetP->lifetime = value; // 对于bs 引导发起等待时间 就是 lifetime
 
                 if (checkOnly)
                 {
@@ -1134,7 +1134,7 @@ int object_getServers(lwm2m_context_t * contextP, bool checkOnly)
                     contextP->bootstrapServerList = (lwm2m_server_t*)LWM2M_LIST_ADD(contextP->bootstrapServerList, targetP);
                 }
             }
-            else
+            else // 非 bs server 处理流程
             {
                 lwm2m_list_t * serverInstP;     // instanceID of the server in the LWM2M Server Object
 
@@ -1146,7 +1146,7 @@ int object_getServers(lwm2m_context_t * contextP, bool checkOnly)
                     lwm2m_free(targetP);
                     return -1;
                 }
-                dataP[0].id = LWM2M_SECURITY_SHORT_SERVER_ID;
+                dataP[0].id = LWM2M_SECURITY_SHORT_SERVER_ID; // server 的 short id资源
                 if (securityObjP->readFunc(contextP, securityInstP->id, &size, &dataP, securityObjP) != COAP_205_CONTENT)
                 {
                     lwm2m_free(targetP);
@@ -1162,6 +1162,7 @@ int object_getServers(lwm2m_context_t * contextP, bool checkOnly)
                 }
                 targetP->shortID = value;
 
+                // 在服务器对象里根据short id 寻找服务器实例
                 serverInstP = prv_findServerInstance(contextP, serverObjP, targetP->shortID);
                 if (serverInstP == NULL)
                 {
@@ -1172,12 +1173,14 @@ int object_getServers(lwm2m_context_t * contextP, bool checkOnly)
 #ifndef LWM2M_VERSION_1_0
                     targetP->servObjInstID = serverInstP->id;
 #endif
+                    // 获取服务器必要信息
                     if (0 != prv_getMandatoryInfo(contextP, serverObjP, serverInstP->id, targetP))
                     {
                         lwm2m_free(targetP);
                         lwm2m_data_free(size, dataP);
                         return -1;
                     }
+                    // 标记服务器状态，未注册
                     targetP->status = STATE_DEREGISTERED;
                     if (checkOnly)
                     {

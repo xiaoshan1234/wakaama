@@ -56,7 +56,7 @@
 
 */
 
-#include "lwm2mclient.h"
+#include "./lwm2mclient.h"
 #include "liblwm2m.h"
 #include "commandline.h"
 #ifdef WITH_TINYDTLS
@@ -1282,12 +1282,12 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    signal(SIGINT, handle_sigint);
+    signal(SIGINT, handle_sigint); // 切换退出处理函数，代表初始化完成，即将开始注册
 
     /**
      * Initialize value changed callback.
      */
-    init_value_change(lwm2mH);
+    init_value_change(lwm2mH); // 未知
 
     fprintf(stdout, "LWM2M Client \"%s\" started on port %s\r\n", name, localPort);
     fprintf(stdout, "> "); fflush(stdout);
@@ -1296,18 +1296,18 @@ int main(int argc, char *argv[])
      */
     while (0 == g_quit)
     {
-        struct timeval tv;
+        struct timeval tv; // 单次step的超时时间，默认60s，重启5s
         fd_set readfds;
 
         if (g_reboot)
         {
             time_t tv_sec;
 
-            tv_sec = lwm2m_gettime();
+            tv_sec = lwm2m_gettime(); // 获取当前时间，用作重启
 
             if (0 == reboot_time)
             {
-                reboot_time = tv_sec + 5;
+                reboot_time = tv_sec + 5; // 设定重启闹钟
             }
             if (reboot_time < tv_sec)
             {
@@ -1319,7 +1319,7 @@ int main(int argc, char *argv[])
             }
             else
             {
-                tv.tv_sec = reboot_time - tv_sec;
+                tv.tv_sec = reboot_time - tv_sec; // 重启倒计时状态下的step超时时间
             }
         }
         else if (batterylevelchanging)
@@ -1333,6 +1333,7 @@ int main(int argc, char *argv[])
         }
         tv.tv_usec = 0;
 
+        // 监听stdin输入与socket输入
         FD_ZERO(&readfds);
         FD_SET(data.sock, &readfds);
         FD_SET(STDIN_FILENO, &readfds);
@@ -1391,6 +1392,7 @@ int main(int argc, char *argv[])
          * This part will set up an interruption until an event happen on SDTIN or the socket until "tv" timed out (set
          * with the precedent function)
          */
+        // 更新标志 有变化的输入
         result = select(FD_SETSIZE, &readfds, NULL, NULL, &tv);
 
         if (result < 0)

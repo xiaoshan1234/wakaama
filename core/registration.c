@@ -520,8 +520,8 @@ static uint8_t prv_startRegistration(lwm2m_context_t *contextP,
     }
     if (result == COAP_NO_ERROR)
     {
-        targetP->registration = lwm2m_gettime() + delay;
-        targetP->status = STATE_REG_HOLD_OFF;
+        targetP->registration = lwm2m_gettime() + delay; // 注册等待闹钟，连续注册多个server时需要
+        targetP->status = STATE_REG_HOLD_OFF; // server 进入等待注册
     }
 
     return result;
@@ -731,6 +731,7 @@ static uint8_t prv_register(lwm2m_context_t * contextP,
     int payload_length;
     lwm2m_transaction_t * transaction;
 
+    // 注册 payload 处理
     payload_length = object_getRegisterPayloadBufferLength(contextP);
     if(payload_length == 0) return COAP_500_INTERNAL_SERVER_ERROR;
     payload = (uint8_t*) lwm2m_malloc(payload_length);
@@ -741,7 +742,7 @@ static uint8_t prv_register(lwm2m_context_t * contextP,
         lwm2m_free(payload);
         return COAP_500_INTERNAL_SERVER_ERROR;
     }
-
+    // 注册 header query 处理
     query_length = prv_getRegistrationQueryLength(contextP, server);
     if(query_length == 0)
     {
@@ -1038,6 +1039,7 @@ uint8_t registration_start(lwm2m_context_t * contextP, bool restartFailed)
     targetP = contextP->serverList;
     while (targetP != NULL && result == COAP_NO_ERROR)
     {
+        // 未注册或者注册失败的处理流程
         if (targetP->status == STATE_DEREGISTERED
          || (restartFailed && targetP->status == STATE_REG_FAILED))
         {
@@ -1047,18 +1049,19 @@ uint8_t registration_start(lwm2m_context_t * contextP, bool restartFailed)
 
             targetP->attempt = 0;
             targetP->sequence = 0;
+            // 服务器优先级排序
             result = prv_getRegistrationOrder(contextP, targetP, serverObjP, &ordered, &order);
             if (result == COAP_NO_ERROR)
             {
-                if (ordered)
+                if (ordered) // 如果有排序机制
                 {
-                    if (!firstOrdered || order < firstOrder)
+                    if (!firstOrdered || order < firstOrder) // 找到最高优先级的 server
                     {
                         firstOrder = order;
                         firstOrdered = targetP;
                     }
                 }
-                else
+                else  // 没有则就直接开始注册
                 {
                     result = prv_startRegistration(contextP, targetP, serverObjP);
                 }

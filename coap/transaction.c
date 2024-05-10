@@ -178,10 +178,10 @@ lwm2m_transaction_t * transaction_new(void * sessionH,
 
     transacP->mID = mID;
 
-    if (altPath != NULL)
+    if (altPath != NULL) // altPath代表备用路径，备用路径一般不用，可以用来代替 /5/0/1 格式的路径
     {
         // TODO: Support multi-segment alternative path
-        coap_set_header_uri_path_segment(transacP->message, altPath + 1);
+        coap_set_header_uri_path_segment(transacP->message, altPath + 1); // 接口会自动添加 / 所以后移一B
     }
     if (NULL != uriP && LWM2M_URI_IS_SET_OBJECT(uriP))
     {
@@ -216,6 +216,7 @@ lwm2m_transaction_t * transaction_new(void * sessionH,
             }
         }
     }
+    // 设置 token，每个包的token都是不一样的，重传也是不一样的
     if (0 < token_len)
     {
         if (NULL != token)
@@ -406,7 +407,7 @@ int transaction_send(lwm2m_context_t * contextP,
             time_t tv_sec = lwm2m_gettime();
             if (0 <= tv_sec)
             {
-                transacP->retrans_time = tv_sec + COAP_RESPONSE_TIMEOUT;
+                transacP->retrans_time = tv_sec + COAP_RESPONSE_TIMEOUT;  // 设置 transcation 超时闹钟
                 transacP->retrans_counter = 1;
             }
             else

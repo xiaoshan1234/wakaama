@@ -122,6 +122,7 @@ connection_t * connection_create(connection_t * connList,
     if (0 != getaddrinfo(host, port, &hints, &servinfo) || servinfo == NULL) return NULL;
 
     // we test the various addresses
+    // 由于是UDP，需要测试一下连通性，这个socket仅用来测试，传入的socket是真正的通道
     s = -1;
     for(p = servinfo ; p != NULL && s == -1 ; p = p->ai_next)
     {

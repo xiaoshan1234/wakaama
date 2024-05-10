@@ -537,7 +537,7 @@ static void prv_handleRegistrationSequenceFailure(lwm2m_context_t *contextP, lwm
     if (result == COAP_NO_ERROR && ordered)
     {
         result = prv_getRegistrationFailureBlocking(contextP, targetP, serverObjP, &blocking);
-        if (result == COAP_NO_ERROR && !blocking && targetP->sequence == 1)
+        if (result == COAP_NO_ERROR && !blocking && targetP->sequence == 1) //保证至少执行一个seq，同时使seq limit生效
         {
             /* Find the next ordered registration to start */
             registration_start(contextP, false);
@@ -558,7 +558,7 @@ static void prv_handleRegistrationSequenceFailure(lwm2m_context_t *contextP, lwm
             {
                 contextP->state = STATE_BOOTSTRAP_REQUIRED;
             }
-            else if(ordered && blocking)
+            else if(ordered && blocking) // 此时未注册的server全部注册失败
             {
                 /* Fail any other ordered registrations not yet started */
                 for (targetP = contextP->serverList; targetP; targetP = targetP->next)
@@ -646,7 +646,7 @@ static void prv_handleRegistrationReply(lwm2m_context_t * contextP,
     (void)contextP; /* unused */
 #endif
 
-    if (dataP->server->status == STATE_REG_PENDING)
+    if (dataP->server->status == STATE_REG_PENDING) // 服务器应该处在等待回应中
     {
         time_t tv_sec = lwm2m_gettime();
         if (tv_sec >= 0)
@@ -690,6 +690,7 @@ static void prv_handleRegistrationReply(lwm2m_context_t * contextP,
                         }
                         else
                         {
+                            // 如果是block且不是seq 1，无需继续，因为其他的还是seq 1
                             result = prv_getRegistrationFailureBlocking(contextP, dataP->server, serverObjP, &blocking);
                             if (result == COAP_NO_ERROR && !blocking)
                             {
@@ -762,6 +763,7 @@ static uint8_t prv_register(lwm2m_context_t * contextP,
         return COAP_500_INTERNAL_SERVER_ERROR;
     }
 
+    // 链接服务器
     if (server->sessionH == NULL)
     {
         server->sessionH = lwm2m_connect_server(server->secObjInstID, contextP->userData);
@@ -774,6 +776,7 @@ static uint8_t prv_register(lwm2m_context_t * contextP,
         return COAP_503_SERVICE_UNAVAILABLE;
     }
 
+    // 新建 transcation
     transaction = transaction_new(server->sessionH, COAP_POST, NULL, NULL, contextP->nextMID++, 4, NULL);
     if (transaction == NULL)
     {
@@ -781,7 +784,7 @@ static uint8_t prv_register(lwm2m_context_t * contextP,
         lwm2m_free(query);
         return COAP_503_SERVICE_UNAVAILABLE;
     }
-
+    // lwm2m 注册报文头
     coap_set_header_uri_path(transaction->message, "/"URI_REGISTRATION_SEGMENT);
     coap_set_header_uri_query(transaction->message, query);
     coap_set_header_content_type(transaction->message, LWM2M_CONTENT_LINK);
@@ -806,7 +809,7 @@ static uint8_t prv_register(lwm2m_context_t * contextP,
     dataP->server = server;
     
     transaction->callback = prv_handleRegistrationReply;
-    transaction->userData = (void *) dataP;
+    transaction->userData = (void *) dataP; // 此处内存在代码中没有释放
 
     contextP->transactionList = (lwm2m_transaction_t *)LWM2M_LIST_ADD(contextP->transactionList, transaction);
     if (transaction_send(contextP, transaction) != 0)
@@ -1048,7 +1051,7 @@ uint8_t registration_start(lwm2m_context_t * contextP, bool restartFailed)
             uint64_t order;
 
             targetP->attempt = 0;
-            targetP->sequence = 0;
+            targetP->sequence = 0; // 服务器注册序列，
             // 服务器优先级排序
             result = prv_getRegistrationOrder(contextP, targetP, serverObjP, &ordered, &order);
             if (result == COAP_NO_ERROR)

@@ -255,7 +255,7 @@ void * lwm2m_connect_server(uint16_t secObjInstID,
     else {
         goto exit;
     }
-    port = strrchr(host, ':');
+    port = strrchr(host, ':'); // 找到 ":" 最后一次出现的位置,处理ipv6
     if (port == NULL) goto exit;
     // remove brackets
     if (host[0] == '[')

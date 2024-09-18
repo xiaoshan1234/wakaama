@@ -189,7 +189,7 @@ static uint8_t prv_coap_raw_block_handler(lwm2m_block_data_t **pBlockDataHead, b
     }
 }
 #endif
-
+// 接收分块核心处理
 static uint8_t prv_coap_block_handler(lwm2m_block_data_t **pBlockDataHead, block_data_identifier_t identifier,
                                       block_type_t blockType, const uint8_t *buffer, size_t length, uint16_t blockSize,
                                       uint32_t blockNum, bool blockMore, uint8_t **outputBuffer, size_t *outputLength) {

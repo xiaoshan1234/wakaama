@@ -653,6 +653,7 @@ static void prv_handleRegistrationReply(lwm2m_context_t * contextP,
         {
             dataP->server->registration = tv_sec;
         }
+        // 注册报文如果太长，对面可能受不了
         if (packet != NULL && (packet->code == COAP_231_CONTINUE || (packet->code == COAP_413_ENTITY_TOO_LARGE && (!IS_OPTION(packet, COAP_OPTION_BLOCK1) || packet->block1_num == 0))))
         {
             transaction_free_userData(contextP, transacP);
@@ -861,6 +862,7 @@ static void prv_handleRegistrationUpdateReply(lwm2m_context_t * contextP,
             LOG_ARG("%d Registration update failed", dataP->server->shortID);
         }
     }
+    // 会导致内存泄漏
     if (packet != NULL && packet->code != COAP_231_CONTINUE)
     {
         lwm2m_free(dataP->payload);

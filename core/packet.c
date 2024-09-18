@@ -710,7 +710,7 @@ void lwm2m_handle_packet(lwm2m_context_t *contextP, uint8_t *buffer, size_t leng
                     if (!done && message->type == COAP_TYPE_CON )
                     {
                         coap_init_message(response, COAP_TYPE_ACK, 0, message->mid);
-                        if (message->payload_len > lwm2m_get_coap_block_size()) {
+                        if (message->payload_len > lwm2m_get_coap_block_size()) { // 有问题
                             coap_set_status_code(response, COAP_413_ENTITY_TOO_LARGE);
                         }
                         coap_error_code = message_send(contextP, response, fromSessionH);
